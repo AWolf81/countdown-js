@@ -10,7 +10,7 @@
 		var opts = this.options,
 			$el = this.$el;
 
-		$(opts.startBtn).hide(opts.showStartBtn);
+		$(opts.startBtn).toggle(opts.showStartBtn);
 		
 		this.start();
 		
@@ -92,7 +92,7 @@
 	$.extend(CountDownApp.prototype, CountDownApp.EventHandlers.prototype);
 
 	$(function() {
-		var countDownApp = new CountDownApp('#timer');
+		var countDownApp = new CountDownApp('#timer', {showStartBtn: false});
 	});
 
 })(jQuery);
