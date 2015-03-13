@@ -1,64 +1,98 @@
 // app.js
 
-(function($) {
-"use strict";
+(function($){
 
-	function Countdown() {
-        this.start_time = "00:30";
-        this.target_id = "#timer";
-        //this.name = "timer";
-    }
+	function CountDownApp(el, options) {
+		this.el = el;
+		this.$el = $(el);
 
-    Countdown.prototype = {
-        init: function () {
-            console.log('init called');
-            this.reset();
-            
-            $('#start').click(this.start.bind(this));
-            $('#reset').click(this.reset.bind(this));
-        },
-        reset: function () {
-            var time = this.start_time.split(":");
-            //this.minutes = parseInt(time[0]);
-            this.seconds = parseInt(time[1]);
-            this.update_target();
-        },
-        tick: function () {
-            if (this.seconds > 0) //|| this.minutes > 0)
-            {
-                if (this.seconds == 0) {
-                    // this.minutes = this.minutes - 1;
-                    this.seconds = 59
-                } else {
-                    this.seconds = this.seconds - 1;
-                }
-                this.start();
-            }
-            else {
-                // show reset button
-                $('#reset').fadeIn('slow');
-                setTimeout(this.autoHideReset, 10 * 1000); // hide in 10 sec.
-            }
-            this.update_target();
-        },
-        start: function() {
-            console.log('start called');
-            //setTimeout(this.name + '.tick()', 1000);
-            setTimeout(this.tick.bind(this), 1000);
-        },
-        update_target: function () {
-            var seconds = this.seconds;
-            //if (seconds < 10) seconds = "" + seconds;
-            $(this.target_id).val(seconds);
-        },
-        autoHideReset: function() {
-        	$('#reset').fadeOut('slow');
-        }
-    };
+		this.options = $.extend({}, CountDownApp.DefaultOptions, options);
+		var opts = this.options,
+			$el = this.$el;
 
-$(function() {
-    var counter = new Countdown();
-    counter.init();
-});
+		$(opts.startBtn).hide(opts.showStartBtn);
+		
+		this.start();
+		
+		this.addEventHandlers();
+	}
+
+	CountDownApp.DefaultOptions = {
+		countdown_sec: 30,
+		startTime: function() { return new Date(Date.now() + this.countdown_sec * 1000);}, // 30 seconds count down //'2016/01/01',
+		timeFormat: '%M:%S', //'%D days %H:%M:%S',
+		autoStart: true,
+		showStartBtn: true,
+		startBtn: '#start',
+		resetBtn: '#reset',
+		autoHideReset: true,
+		autoHideTime: 10 * 1000, // 10 000 milliseconds = 10 seconds
+		animationSpeed: 'slow'
+	}
+
+	CountDownApp.prototype = {
+		addEventHandlers: function() {
+			$(this.options.resetBtn).click(this.reset.bind(this));
+			$(this.options.startBtn).click(this.startClick.bind(this));
+		},
+		start: function() {
+			if ( this.options.autoStart ) {
+				this.startCountdown();
+     		}
+     		else {
+     			// here init count-down value and stop count-down
+     			this.startCountdown();
+     			this.$el.countdown('stop');
+     			this.$el.countdown('update'); //trigger update manually to change the DOM
+     		}
+		},
+		startCountdown: function() {
+			this.$el.countdown(this.options.startTime())
+				.bind('update.countdown', {context: this}, this.update)
+	     		.bind('finish.countdown', {context: this}, this.finish);
+		},
+		update: function(event) {
+			var self = event.data.context; //get the context
+			//console.log(event);
+			$(this).val(
+				event.strftime(self.options.timeFormat)
+			);
+		},
+		finish: function(event) {
+			var self = event.data.context; //get the context
+			console.log('finished', event);
+			$(this).val(
+				event.strftime(self.options.timeFormat)
+			); // update time input to have 00:00 displayed instead of 00:01
+
+			$(self.options.resetBtn).fadeIn(self.options.animationSpeed);
+			if ( self.options.autoHideReset ) {
+				setTimeout(self.autohideReset.bind(self), self.options.autoHideTime);
+			}
+		},
+		autohideReset: function() {
+			$(this.options.resetBtn).fadeOut(this.options.animationSpeed);
+		}
+	};
+
+	CountDownApp.EventHandlers = function() {
+
+	};
+
+	CountDownApp.EventHandlers.prototype = {
+		reset: function() {
+			console.log('reset clicked');
+			this.$el.countdown(this.options.startTime());
+		},
+		startClick: function() {
+			this.startCountdown();
+		}
+	};
+
+	$.extend(CountDownApp.prototype, CountDownApp.EventHandlers.prototype);
+
+	$(function() {
+		var countDownApp = new CountDownApp('#timer');
+	});
 
 })(jQuery);
